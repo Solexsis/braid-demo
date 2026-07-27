@@ -1,0 +1,624 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-27T07:57:05+00:00",
+  "generated_by": "idk-lm scripts/export_demo_benchmarks.py",
+  "source_repository": "private research repository (idk-lm)",
+  "source_commit": "734767691baecb52d706a6a7558613b8adeb42de",
+  "sources": [
+    "docs/benchmarks/braid-config-systems-2026-07-26.csv",
+    "docs/benchmarks/braid-context-systems-2026-07-26.csv",
+    "docs/benchmarks/braid-config-sweep-2026-07-26.csv"
+  ],
+  "presets": [
+    {
+      "name": "default-300m",
+      "preset_version": "1.0.0",
+      "parameters": 295082179,
+      "non_embedding_parameters": 294738115,
+      "weight_bytes_bf16": 590164358,
+      "context_limit_bytes": 8192,
+      "description": "Canonical public Braid default: tokenizer-free byte-level HourglassBraid at the settled full recipe, sized for ~300M parameters.",
+      "trained": false
+    },
+    {
+      "name": "default-100m",
+      "preset_version": "1.0.0",
+      "parameters": 102482243,
+      "non_embedding_parameters": 102302019,
+      "weight_bytes_bf16": 204964486,
+      "context_limit_bytes": 8192,
+      "description": "Fallback public Braid default: identical settled recipe to braid-default-300m, sized for ~100M parameters.",
+      "trained": false
+    },
+    {
+      "name": "ci-tiny",
+      "preset_version": "1.0.0",
+      "parameters": 479747,
+      "non_embedding_parameters": 463363,
+      "weight_bytes_bf16": 959494,
+      "context_limit_bytes": 256,
+      "description": "Tiny CPU-only CI model. Structurally identical to the default recipe (every mechanism present) but small enough to construct, package and decode in seconds.",
+      "trained": false
+    }
+  ],
+  "sections": [
+    {
+      "id": "matched-30m-fineweb",
+      "title": "Matched ~30M-parameter run on FineWeb bytes",
+      "status": "measured",
+      "hardware": "NVIDIA GeForce RTX 3090 (24 GB), CUDA, bf16 autocast, torch.compile",
+      "columns": [
+        {
+          "key": "label",
+          "label": "architecture",
+          "kind": "text"
+        },
+        {
+          "key": "seeds",
+          "label": "seeds",
+          "kind": "int"
+        },
+        {
+          "key": "parameters",
+          "label": "parameters",
+          "kind": "int"
+        },
+        {
+          "key": "val_bits_per_byte",
+          "label": "val bits/byte",
+          "kind": "float",
+          "better": "lower",
+          "ci": "val_bits_per_byte_ci95"
+        },
+        {
+          "key": "wall_seconds",
+          "label": "wall time (s)",
+          "kind": "float",
+          "better": "lower"
+        },
+        {
+          "key": "train_bytes_per_second",
+          "label": "train byte/s",
+          "kind": "int",
+          "better": "higher"
+        },
+        {
+          "key": "peak_vram_gib",
+          "label": "peak VRAM (GiB)",
+          "kind": "float",
+          "better": "lower"
+        },
+        {
+          "key": "gross_energy_wh",
+          "label": "gross energy (Wh)",
+          "kind": "float",
+          "better": "lower"
+        }
+      ],
+      "rows": [
+        {
+          "id": "hourglass_full_recipe",
+          "label": "Braid (default recipe)",
+          "kind": "braid",
+          "highlight": true,
+          "status": "measured",
+          "seeds": 3,
+          "parameters": 30957099,
+          "val_bits_per_byte": 1.5296,
+          "val_bits_per_byte_ci95": 0.004,
+          "wall_seconds": 154.9,
+          "train_bytes_per_second": 465378.0,
+          "peak_vram_gib": 1.86,
+          "gross_energy_wh": 15.78,
+          "useful_tflops_per_step": 0.621
+        },
+        {
+          "id": "transformer",
+          "label": "Dense MHA Transformer",
+          "kind": "baseline",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 3,
+          "parameters": 29574016,
+          "val_bits_per_byte": 1.5106,
+          "val_bits_per_byte_ci95": 0.007,
+          "wall_seconds": 443.7,
+          "train_bytes_per_second": 151673.0,
+          "peak_vram_gib": 4.13,
+          "gross_energy_wh": 47.21,
+          "useful_tflops_per_step": 3.969
+        },
+        {
+          "id": "transformer_gqa",
+          "label": "Dense GQA Transformer",
+          "kind": "baseline",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 29633408,
+          "val_bits_per_byte": 1.5268,
+          "val_bits_per_byte_ci95": null,
+          "wall_seconds": 462.5,
+          "train_bytes_per_second": 146069.0,
+          "peak_vram_gib": 4.05,
+          "gross_energy_wh": 49.25,
+          "useful_tflops_per_step": 4.155
+        },
+        {
+          "id": "flat_mla",
+          "label": "Flat Braid (MLA blocks)",
+          "kind": "braid-variant",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 31234352,
+          "val_bits_per_byte": 1.4654,
+          "val_bits_per_byte_ci95": null,
+          "wall_seconds": 745.9,
+          "train_bytes_per_second": 90965.0,
+          "peak_vram_gib": 4.91,
+          "gross_energy_wh": 77.08,
+          "useful_tflops_per_step": 3.703
+        },
+        {
+          "id": "flat_braid",
+          "label": "Flat Braid (CCCA)",
+          "kind": "braid-variant",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30118784,
+          "val_bits_per_byte": 1.4757,
+          "val_bits_per_byte_ci95": null,
+          "wall_seconds": 470.0,
+          "train_bytes_per_second": 146348.0,
+          "peak_vram_gib": 4.58,
+          "gross_energy_wh": 49.39,
+          "useful_tflops_per_step": 3.391
+        },
+        {
+          "id": "hourglass_copy4",
+          "label": "Braid core + exact copy-4",
+          "kind": "braid-variant",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 3,
+          "parameters": 30347267,
+          "val_bits_per_byte": 1.5533,
+          "val_bits_per_byte_ci95": 0.0055,
+          "wall_seconds": 102.8,
+          "train_bytes_per_second": 714509.0,
+          "peak_vram_gib": 1.33,
+          "gross_energy_wh": 10.37,
+          "useful_tflops_per_step": 0.397
+        },
+        {
+          "id": "hourglass",
+          "label": "Braid core hierarchy",
+          "kind": "braid-variant",
+          "highlight": false,
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30346944,
+          "val_bits_per_byte": 1.5769,
+          "val_bits_per_byte_ci95": null,
+          "wall_seconds": 106.5,
+          "train_bytes_per_second": 767111.0,
+          "peak_vram_gib": 1.26,
+          "gross_energy_wh": 9.93,
+          "useful_tflops_per_step": 0.397
+        }
+      ],
+      "methodology": "Identical FineWeb byte crops, batch 8 x 2,048 bytes, Muon/AdamW parameter split, WSD schedule, bf16 autocast, compiled training, 4,000 updates = 65.536M training bytes, fixed validation crops every 400 steps, one RTX 3090. The primary Braid/MHA comparison uses three paired seeds (1337/2027/4242); one-seed arms are mechanism screens, not rankings.",
+      "caveats": [
+        "Equal-byte quality still favours the dense MHA Transformer by 0.019 bits/byte. Braid's advantage is systems cost, not loss.",
+        "Steady-state throughput excludes the first logged interval so sequential torch.compile cache population cannot flatter later arms; wall time and energy deliberately include compilation.",
+        "Energy is whole-card draw from process start to checkpoint save, not isolated kernel energy.",
+        "Analytical FLOPs omit norms, embeddings, elementwise work and the exact suffix-table operations; measured time and energy include them.",
+        "These are ~30M-parameter runs. They do not license any claim about the 300M model."
+      ]
+    },
+    {
+      "id": "ablations-30m",
+      "title": "What the default recipe is made of (30M ablation screen)",
+      "status": "measured",
+      "hardware": "NVIDIA GeForce RTX 3090 (24 GB), CUDA, bf16 autocast, torch.compile",
+      "columns": [
+        {
+          "key": "label",
+          "label": "configuration",
+          "kind": "text"
+        },
+        {
+          "key": "seeds",
+          "label": "seeds",
+          "kind": "int"
+        },
+        {
+          "key": "val_bits_per_byte",
+          "label": "val bits/byte",
+          "kind": "float",
+          "better": "lower"
+        },
+        {
+          "key": "delta_vs_core_pct",
+          "label": "\u0394 vs core (%)",
+          "kind": "signed",
+          "better": "lower"
+        },
+        {
+          "key": "train_bytes_per_second",
+          "label": "train byte/s",
+          "kind": "int",
+          "better": "higher"
+        }
+      ],
+      "rows": [
+        {
+          "id": "hourglass",
+          "label": "core hierarchy (reference)",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30346944,
+          "val_bits_per_byte": 1.5769,
+          "delta_vs_core_pct": 0.0,
+          "train_bytes_per_second": 767111.0
+        },
+        {
+          "id": "hourglass_no_fine_attn",
+          "label": "remove the 256-byte fine attention window",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 29301056,
+          "val_bits_per_byte": 1.6933,
+          "delta_vs_core_pct": 7.38,
+          "train_bytes_per_second": 942673.0
+        },
+        {
+          "id": "hourglass_recency_conv",
+          "label": "replace fine attention with selective convolution",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 29774016,
+          "val_bits_per_byte": 1.685,
+          "delta_vs_core_pct": 6.86,
+          "train_bytes_per_second": 525104.0
+        },
+        {
+          "id": "hourglass_recency_ladder",
+          "label": "replace it with a two-rung recency ladder",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 31392832,
+          "val_bits_per_byte": 1.6221,
+          "delta_vs_core_pct": 2.87,
+          "train_bytes_per_second": 703527.0
+        },
+        {
+          "id": "hourglass_no_gated_skip",
+          "label": "remove the gated U-Net skip",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30141504,
+          "val_bits_per_byte": 1.5967,
+          "delta_vs_core_pct": 1.26,
+          "train_bytes_per_second": 777472.0
+        },
+        {
+          "id": "hourglass_gated_skip_ctx",
+          "label": "context-conditioned gated skip",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30551744,
+          "val_bits_per_byte": 1.5838,
+          "delta_vs_core_pct": 0.44,
+          "train_bytes_per_second": 739128.0
+        },
+        {
+          "id": "hourglass_no_ngram",
+          "label": "remove byte n-gram inputs (width reallocated)",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30721344,
+          "val_bits_per_byte": 1.6099,
+          "delta_vs_core_pct": 2.09,
+          "train_bytes_per_second": 330311.0
+        },
+        {
+          "id": "hourglass_ngram_pow2",
+          "label": "power-of-two n-gram hash buckets",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30359104,
+          "val_bits_per_byte": 1.5921,
+          "delta_vs_core_pct": 0.97,
+          "train_bytes_per_second": 755660.0
+        },
+        {
+          "id": "hourglass_deep_bottleneck",
+          "label": "deeper coarse bottleneck",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 29975624,
+          "val_bits_per_byte": 1.5891,
+          "delta_vs_core_pct": 0.78,
+          "train_bytes_per_second": 677892.0
+        },
+        {
+          "id": "hourglass_three_level",
+          "label": "three hierarchy levels",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 31684800,
+          "val_bits_per_byte": 1.5785,
+          "delta_vs_core_pct": 0.1,
+          "train_bytes_per_second": 698190.0
+        },
+        {
+          "id": "hourglass_one_level",
+          "label": "one hierarchy level",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30293056,
+          "val_bits_per_byte": 1.5678,
+          "delta_vs_core_pct": -0.57,
+          "train_bytes_per_second": 657621.0
+        },
+        {
+          "id": "hourglass_coarse_window",
+          "label": "bounded coarse attention (128 slots)",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30346944,
+          "val_bits_per_byte": 1.5802,
+          "delta_vs_core_pct": 0.21,
+          "train_bytes_per_second": 752993.0
+        },
+        {
+          "id": "hourglass_copy4",
+          "label": "core + exact copy-4",
+          "status": "measured",
+          "seeds": 3,
+          "parameters": 30347267,
+          "val_bits_per_byte": 1.5533,
+          "delta_vs_core_pct": -1.5,
+          "train_bytes_per_second": 714509.0
+        },
+        {
+          "id": "hourglass_mtp",
+          "label": "core + multi-token prediction 2/3/4",
+          "status": "measured",
+          "seeds": 1,
+          "parameters": 30655104,
+          "val_bits_per_byte": 1.578,
+          "delta_vs_core_pct": 0.07,
+          "train_bytes_per_second": 683010.0
+        },
+        {
+          "id": "hourglass_full_recipe",
+          "label": "full default recipe (all of the above that won)",
+          "status": "measured",
+          "seeds": 3,
+          "parameters": 30957099,
+          "val_bits_per_byte": 1.5296,
+          "delta_vs_core_pct": -3.0,
+          "train_bytes_per_second": 465378.0
+        }
+      ],
+      "methodology": "Same harness as the matched table. Each arm changes one mechanism against the core hierarchy; arms that remove a large parameter block reallocate width so the comparison measures where the budget is spent rather than rewarding whichever arm has more parameters.",
+      "caveats": [
+        "Single-seed arms are attribution, not sub-percent rankings.",
+        "Removing fine attention is the largest single regression; neither the selective-convolution nor the two-rung-ladder replacement recovers it.",
+        "Multi-token prediction is null on its own at this budget; it is kept because it is part of the recipe that was measured as a whole."
+      ]
+    },
+    {
+      "id": "context-scaling",
+      "title": "Training throughput versus context length",
+      "status": "measured",
+      "hardware": "NVIDIA GeForce RTX 3090 (24 GB), CUDA, bf16 autocast, torch.compile",
+      "rows": [
+        {
+          "id": "hourglass_full_recipe",
+          "label": "Braid (default recipe)",
+          "kind": "braid",
+          "status": "measured",
+          "parameters": 30957099,
+          "points": [
+            {
+              "context_bytes": 512,
+              "train_bytes_per_second": 388252.0,
+              "step_milliseconds": 21.1,
+              "peak_vram_gib": 1.152
+            },
+            {
+              "context_bytes": 1024,
+              "train_bytes_per_second": 381854.0,
+              "step_milliseconds": 21.45,
+              "peak_vram_gib": 1.152
+            },
+            {
+              "context_bytes": 2048,
+              "train_bytes_per_second": 380003.0,
+              "step_milliseconds": 21.56,
+              "peak_vram_gib": 1.152
+            },
+            {
+              "context_bytes": 4096,
+              "train_bytes_per_second": 383481.0,
+              "step_milliseconds": 21.36,
+              "peak_vram_gib": 1.152
+            },
+            {
+              "context_bytes": 8192,
+              "train_bytes_per_second": 377194.0,
+              "step_milliseconds": 21.72,
+              "peak_vram_gib": 1.153
+            }
+          ]
+        },
+        {
+          "id": "transformer",
+          "label": "Dense MHA Transformer",
+          "kind": "baseline",
+          "status": "measured",
+          "parameters": 29574016,
+          "points": [
+            {
+              "context_bytes": 512,
+              "train_bytes_per_second": 155380.0,
+              "step_milliseconds": 52.72,
+              "peak_vram_gib": 2.266
+            },
+            {
+              "context_bytes": 1024,
+              "train_bytes_per_second": 147908.0,
+              "step_milliseconds": 55.39,
+              "peak_vram_gib": 2.266
+            },
+            {
+              "context_bytes": 2048,
+              "train_bytes_per_second": 135053.0,
+              "step_milliseconds": 60.66,
+              "peak_vram_gib": 2.266
+            },
+            {
+              "context_bytes": 4096,
+              "train_bytes_per_second": 115061.0,
+              "step_milliseconds": 71.2,
+              "peak_vram_gib": 2.267
+            },
+            {
+              "context_bytes": 8192,
+              "train_bytes_per_second": 88757.0,
+              "step_milliseconds": 92.3,
+              "peak_vram_gib": 2.268
+            }
+          ]
+        },
+        {
+          "id": "transformer_gqa",
+          "label": "Dense GQA Transformer",
+          "kind": "baseline",
+          "status": "measured",
+          "parameters": 29633408,
+          "points": [
+            {
+              "context_bytes": 512,
+              "train_bytes_per_second": 153058.0,
+              "step_milliseconds": 53.52,
+              "peak_vram_gib": 2.227
+            },
+            {
+              "context_bytes": 1024,
+              "train_bytes_per_second": 144241.0,
+              "step_milliseconds": 56.79,
+              "peak_vram_gib": 2.227
+            },
+            {
+              "context_bytes": 2048,
+              "train_bytes_per_second": 130109.0,
+              "step_milliseconds": 62.96,
+              "peak_vram_gib": 2.227
+            },
+            {
+              "context_bytes": 4096,
+              "train_bytes_per_second": 109028.0,
+              "step_milliseconds": 75.14,
+              "peak_vram_gib": 2.227
+            },
+            {
+              "context_bytes": 8192,
+              "train_bytes_per_second": 82101.0,
+              "step_milliseconds": 99.78,
+              "peak_vram_gib": 2.228
+            }
+          ]
+        },
+        {
+          "id": "flat_braid",
+          "label": "Flat Braid (CCCA)",
+          "kind": "braid-variant",
+          "status": "measured",
+          "parameters": 30118784,
+          "points": [
+            {
+              "context_bytes": 512,
+              "train_bytes_per_second": 142091.0,
+              "step_milliseconds": 57.65,
+              "peak_vram_gib": 2.496
+            },
+            {
+              "context_bytes": 1024,
+              "train_bytes_per_second": 138720.0,
+              "step_milliseconds": 59.05,
+              "peak_vram_gib": 2.495
+            },
+            {
+              "context_bytes": 2048,
+              "train_bytes_per_second": 133948.0,
+              "step_milliseconds": 61.16,
+              "peak_vram_gib": 2.495
+            },
+            {
+              "context_bytes": 4096,
+              "train_bytes_per_second": 124910.0,
+              "step_milliseconds": 65.58,
+              "peak_vram_gib": 2.496
+            },
+            {
+              "context_bytes": 8192,
+              "train_bytes_per_second": 110119.0,
+              "step_milliseconds": 74.39,
+              "peak_vram_gib": 2.496
+            }
+          ]
+        }
+      ],
+      "methodology": "Fresh process per point, 8,192 random bytes held constant per optimizer step while context varies from 512 to 8,192 bytes, so batch shrinks as context grows. One seed.",
+      "caveats": [
+        "This is a systems measurement. It says nothing about language quality or long-context retrieval."
+      ]
+    },
+    {
+      "id": "default-300m",
+      "title": "Braid default 300M",
+      "status": "pending",
+      "hardware": null,
+      "rows": [
+        {
+          "id": "default-300m",
+          "label": "default-300m",
+          "status": "pending",
+          "parameters": 295082179,
+          "context_limit_bytes": 8192,
+          "val_bits_per_byte": null,
+          "train_bytes_per_second": null,
+          "generation_bytes_per_second": null,
+          "peak_vram_gib": null
+        },
+        {
+          "id": "default-100m",
+          "label": "default-100m",
+          "status": "pending",
+          "parameters": 102482243,
+          "context_limit_bytes": 8192,
+          "val_bits_per_byte": null,
+          "train_bytes_per_second": null,
+          "generation_bytes_per_second": null,
+          "peak_vram_gib": null
+        }
+      ],
+      "methodology": "Not yet measured. The presets construct and their parameter counts are exact, but no 300M or 100M checkpoint has been trained, so there are no quality or throughput numbers to publish.",
+      "caveats": [
+        "Every quality figure on this page comes from ~30M-parameter runs. Extrapolating them to 300M would be a fabrication.",
+        "When a checkpoint exists it will be measured with `braid benchmark --preset default-300m --checkpoint ... --output ...` and this section will be regenerated from that record."
+      ]
+    }
+  ],
+  "global_caveats": [
+    "Braid is a research preview. Nothing on this page claims it is better than a transformer at equal data; at equal bytes the dense MHA baseline is still ahead on loss.",
+    "All measurements come from the private research repository and are reproducible there from the tracked CSVs.",
+    "No number on this page is estimated, projected, or rounded up."
+  ]
+}

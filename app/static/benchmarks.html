@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Braid benchmarks | Solexsis Research</title>
+<meta name="description" content="Measured benchmark results for Braid, a tokenizer-free byte-level hourglass language model. Only measured values; no projections.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129526;</text></svg>">
+</head>
+<body>
+
+<header class="site">
+	<div class="site-inner">
+		<div class="brand">
+			<span class="org">Solexsis Research</span>
+			<span class="product">Braid</span>
+		</div>
+		<span class="tag">Research preview</span>
+		<nav class="site-nav">
+			<a href="/">Demo</a>
+			<a href="/benchmarks" aria-current="page">Benchmarks</a>
+			<a href="https://github.com/SolexsisAI/braid-demo" rel="noopener">Repository</a>
+			<a href="https://solexsis.ai" rel="noopener">Solexsis</a>
+		</nav>
+	</div>
+</header>
+
+<main class="wrap">
+
+	<section class="hero">
+		<h1>Measured results</h1>
+		<p>
+			Every number below was produced by the benchmark harness in the private
+			research repository and exported to a checked-in JSON file. Rows marked
+			<span class="badge pending">pending</span> have no numbers because nothing
+			has been measured yet — they are not estimates, and there is nothing behind
+			them.
+		</p>
+		<p id="provenance" class="pipeline">loading…</p>
+	</section>
+
+	<div class="notice" id="global-caveats" hidden></div>
+
+	<div id="sections"></div>
+
+</main>
+
+<footer class="site">
+	<div class="site-inner">
+		<span>Raw data: <code>/v1/benchmarks</code>. Regenerated with <code>scripts/export_demo_benchmarks.py</code> in the private research repository.</span>
+	</div>
+</footer>
+
+<script src="/static/benchmarks.js"></script>
+</body>
+</html>

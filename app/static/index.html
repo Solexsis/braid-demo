@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Braid — research preview | Solexsis Research</title>
+<meta name="description" content="Braid is a tokenizer-free byte-level hourglass language model from Solexsis Research. Interactive research preview.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129526;</text></svg>">
+</head>
+<body>
+
+<header class="site">
+	<div class="site-inner">
+		<div class="brand">
+			<span class="org">Solexsis Research</span>
+			<span class="product">Braid</span>
+		</div>
+		<span class="tag" title="Not a production model">Research preview</span>
+		<nav class="site-nav">
+			<a href="/" aria-current="page">Demo</a>
+			<a href="/benchmarks">Benchmarks</a>
+			<a id="repo-link" href="https://github.com/SolexsisAI/braid-demo" rel="noopener">Repository</a>
+			<a id="site-link" href="https://solexsis.ai" rel="noopener">Solexsis</a>
+		</nav>
+	</div>
+</header>
+
+<main class="wrap">
+
+	<section class="hero">
+		<h1>A language model that is not a transformer, and has no tokenizer.</h1>
+		<p>
+			Braid reads and writes <strong>raw bytes</strong>. Most layers are cheap gated
+			causal convolutions doing local work; the sequence is folded down by 16&times;
+			through a causal U-Net so that full attention runs only where the sequence is
+			short, and one sliding-window attention block on the way back up covers the
+			recent bytes the coarse path cannot see. An exact suffix-copy branch handles
+			literal repetition beside the neural head.
+		</p>
+		<p>
+			The result is a model that trains and runs cheaply for its size. It is
+			<strong>not</strong> a frontier model, it is not instruction-tuned, and on
+			equal-data quality a matched dense transformer still wins by a small margin.
+			See <a href="/benchmarks">the benchmarks</a> for the measured numbers.
+		</p>
+		<div class="pipeline">bytes ─▶ stem (conv) ─▶ ↓4 ─▶ ↓4 ─▶ dense attention @ 1/16 rate ─▶ ↑4 + gated skip ─▶ ↑4 + gated skip ─▶ fine 256B window ─▶ byte logits</div>
+	</section>
+
+	<div class="notice" id="backend-notice" hidden></div>
+
+	<div class="grid">
+
+		<section class="panel">
+			<h2>Prompt</h2>
+			<label for="prompt">Text to continue<span class="sr-only"> (UTF-8)</span></label>
+			<textarea id="prompt" spellcheck="false" placeholder="A strange machine woke beneath the city.">A strange machine woke beneath the city.</textarea>
+
+			<div class="examples" id="examples">
+				<button class="chip" type="button">A strange machine woke beneath the city.</button>
+				<button class="chip" type="button">The difference between a byte and a token is</button>
+				<button class="chip" type="button">def fibonacci(n):</button>
+				<button class="chip" type="button">Once upon a time, in a lighthouse at the edge of</button>
+				<button class="chip" type="button">Notes on causal downsampling:</button>
+			</div>
+
+			<div class="controls">
+				<div class="control">
+					<label for="max-new-bytes">Max output bytes <span class="value" id="max-new-bytes-value">256</span></label>
+					<input type="range" id="max-new-bytes" min="16" max="1024" step="16" value="256">
+				</div>
+				<div class="control">
+					<label for="temperature">Temperature <span class="value" id="temperature-value">0.80</span></label>
+					<input type="range" id="temperature" min="0.05" max="2" step="0.05" value="0.8">
+				</div>
+				<div class="control">
+					<label for="top-k">Top-k <span class="value" id="top-k-value">50</span></label>
+					<input type="range" id="top-k" min="0" max="256" step="1" value="50">
+				</div>
+				<div class="control">
+					<label for="seed">Seed (optional)</label>
+					<input type="number" id="seed" min="0" step="1" placeholder="random">
+				</div>
+			</div>
+
+			<div class="row">
+				<button class="btn-primary" id="generate">Generate</button>
+				<button class="btn-ghost" id="stop" disabled>Stop</button>
+				<button class="btn-ghost" id="clear">Clear</button>
+			</div>
+		</section>
+
+		<section class="panel">
+			<h2>Model</h2>
+			<dl class="meta" id="model-meta">
+				<dt>status</dt><dd id="meta-status">loading…</dd>
+			</dl>
+			<h2 style="margin-top:20px">Limitations</h2>
+			<ul class="plain" id="limitations">
+				<li>Research preview. Output is frequently wrong, repetitive, or nonsense.</li>
+				<li>No instruction tuning, no alignment, no safety filtering, no retrieval.</li>
+				<li>Byte-level: it can emit invalid UTF-8, which is rendered as &#xFFFD;.</li>
+				<li>Bounded coarse attention: this is not a long-context model.</li>
+				<li>Do not use it for facts, code you will run, or anything with a cost.</li>
+			</ul>
+		</section>
+
+	</div>
+
+	<section class="output">
+		<div class="output-head">
+			<span class="dot" id="status-dot"></span>
+			<span id="status-text">idle</span>
+			<span class="stats" id="stats"></span>
+		</div>
+		<pre id="output"><span class="prompt-echo">Output appears here.</span></pre>
+	</section>
+
+</main>
+
+<footer class="site">
+	<div class="site-inner">
+		<span>Braid is a research project of Solexsis Research. Training and architecture research live in a separate private repository.</span>
+	</div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
