@@ -1,0 +1,136 @@
+# Manually triggered integration test against the REAL runtime.
+#
+# This workflow needs read access to the private research repository and is
+# therefore never run automatically, never on pull_request, and never from a
+# fork. The public CI in ci.yml must keep passing without any of these secrets.
+#
+# Required repository/environment secrets:
+#   BRAID_RUNTIME_TOKEN  fine-grained PAT with read-only Contents on the
+#                        private repo (nothing else)
+#   BRAID_MODEL_URL      https URL of a packaged model tarball (optional)
+#   BRAID_MODEL_SHA256   its SHA-256 (required if the URL is set)
+
+name: runtime-integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_release:
+        description: "Release tag in the private repo holding the runtime wheel"
+        required: true
+        default: "runtime-v0.1.0"
+      runtime_version:
+        description: "Wheel version"
+        required: true
+        default: "0.1.0"
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: real runtime, CI-tiny model
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: runtime-integration
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install the demo
+        run: |
+          uv venv --python 3.12
+          uv sync --extra dev
+
+      - name: Fetch the private runtime wheel
+        env:
+          GH_TOKEN: ${{ secrets.BRAID_RUNTIME_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN" || { echo "::error::BRAID_RUNTIME_TOKEN is not set"; exit 1; }
+          mkdir -p wheels
+          gh release download "${{ inputs.runtime_release }}" \
+            --repo Solenopsisbot/idk-lm \
+            --pattern "braid_runtime-${{ inputs.runtime_version }}-py3-none-any.whl" \
+            --dir wheels
+          ls -la wheels
+
+      - name: Install the runtime (CPU torch)
+        run: |
+          uv pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+            "wheels/braid_runtime-${{ inputs.runtime_version }}-py3-none-any.whl"
+
+      - name: Build a CI-tiny package (random weights, no private checkpoint)
+        run: |
+          uv run braid package --preset ci-tiny --random-init \
+            --seed 1337 --output /tmp/braid-ci-tiny
+          uv run braid inspect --model /tmp/braid-ci-tiny
+
+      - name: Start the app against the real runtime
+        env:
+          BRAID_BACKEND: runtime
+          BRAID_MODEL_PATH: /tmp/braid-ci-tiny
+          BRAID_DEVICE: cpu
+          BRAID_PRESET: ci-tiny
+          BRAID_RUNTIME_VERSION: ${{ inputs.runtime_version }}
+          BRAID_MAX_NEW_BYTES: "128"
+          BRAID_RATE_LIMIT_REQUESTS: "0"
+        run: |
+          uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          echo $! > server.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/health | grep -q '"model_loaded":true'; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health | grep -q '"backend":"runtime"'
+
+      - name: Real model metadata
+        run: |
+          body=$(curl -sf http://127.0.0.1:8000/v1/model)
+          echo "$body"
+          echo "$body" | grep -q '"backend":"runtime"'
+          echo "$body" | grep -q 'HourglassBraid'
+
+      - name: Real generation, streamed and not, must agree
+        run: |
+          payload='{"prompt":"Hello","max_new_bytes":64,"seed":1234}'
+          whole=$(curl -sf http://127.0.0.1:8000/v1/completions \
+            -H 'content-type: application/json' -d "$payload" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"])')
+          streamed=$(curl -sfN http://127.0.0.1:8000/v1/completions/stream \
+            -H 'content-type: application/json' -d "$payload" \
+            | python3 -c '
+import json, sys
+out = []
+for line in sys.stdin:
+    if line.startswith("data:"):
+        payload = json.loads(line[5:])
+        if "text" in payload:
+            out.append(payload["text"])
+print("".join(out))')
+          test "$whole" = "$streamed" || { echo "::error::stream != non-stream"; exit 1; }
+
+      - name: Optional — a published model package
+        if: ${{ secrets.BRAID_MODEL_URL != '' }}
+        env:
+          BRAID_BACKEND: runtime
+          BRAID_MODEL_URL: ${{ secrets.BRAID_MODEL_URL }}
+          BRAID_MODEL_SHA256: ${{ secrets.BRAID_MODEL_SHA256 }}
+          BRAID_MODEL_CACHE: /tmp/braid-cache
+          BRAID_DEVICE: cpu
+        run: |
+          kill "$(cat server.pid)" || true
+          uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 &
+          echo $! > server2.pid
+          for i in $(seq 1 120); do
+            if curl -sf http://127.0.0.1:8001/health | grep -q '"model_loaded":true'; then break; fi
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:8001/v1/model
+
+      - name: Stop
+        if: always()
+        run: |
+          kill "$(cat server.pid)" 2>/dev/null || true
+          kill "$(cat server2.pid)" 2>/dev/null || true

@@ -1,0 +1,42 @@
+# Local development. Mock backend by default: no private wheel, no weights,
+# no GPU. `docker compose -f docker-compose.dev.yml up --build`
+
+services:
+  demo:
+    build:
+      context: .
+      args:
+        INSTALL_RUNTIME: "${INSTALL_RUNTIME:-0}"
+        RUNTIME_VERSION: "${RUNTIME_VERSION:-0.1.0}"
+    image: braid-demo:dev
+    ports:
+      - "8000:8000"
+    environment:
+      BRAID_BACKEND: "${BRAID_BACKEND:-mock}"
+      BRAID_DEVICE: "${BRAID_DEVICE:-cpu}"
+      BRAID_MODEL_PATH: "${BRAID_MODEL_PATH:-}"
+      BRAID_MODEL_URL: "${BRAID_MODEL_URL:-}"
+      BRAID_MODEL_SHA256: "${BRAID_MODEL_SHA256:-}"
+      BRAID_MODEL_CACHE: /var/cache/braid
+      BRAID_MAX_PROMPT_BYTES: "4096"
+      BRAID_MAX_NEW_BYTES: "1024"
+      BRAID_MAX_CONCURRENT: "1"
+      BRAID_REQUEST_TIMEOUT: "60"
+      BRAID_RATE_LIMIT_REQUESTS: "60"
+      BRAID_LOG_LEVEL: DEBUG
+    volumes:
+      # Persist the downloaded/verified model package across restarts.
+      - braid-model-cache:/var/cache/braid
+      # Mount a locally packaged model for the runtime backend:
+      # - ../idk-lm/dist/braid-default-300m:/models/braid-default-300m:ro
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys,json;r=urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=4);sys.exit(0 if json.load(r)['model_loaded'] else 1)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  braid-model-cache:

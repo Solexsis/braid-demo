@@ -1,0 +1,34 @@
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.ruff_cache
+.mypy_cache
+tests
+docs
+
+# Never let a checkpoint or a secret into the build context.
+*.pt
+*.ckpt
+*.safetensors
+*.pth
+*.onnx
+.env
+.env.*
+!.env.example
+models/
+checkpoints/
+model-cache/
+
+# Wheels are copied deliberately by the Dockerfile; keep everything else out.
+wheels/*
+!wheels/.gitkeep
+!wheels/*.whl
+
+*.log
+*.tar.gz
+.DS_Store

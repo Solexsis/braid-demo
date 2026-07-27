@@ -1,0 +1,208 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: no weights, no secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject committed checkpoints
+        run: |
+          matches=$(git ls-files | grep -Ei '\.(pt|ckpt|bin|safetensors|pth|onnx)$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::weight-like files are tracked:"; echo "$matches"; exit 1
+          fi
+
+      - name: Reject committed environment files
+        run: |
+          matches=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::environment files are tracked:"; echo "$matches"; exit 1
+          fi
+
+      - name: Reject committed wheels
+        run: |
+          matches=$(git ls-files | grep -E '\.whl$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::the private runtime wheel must not be committed:"; echo "$matches"; exit 1
+          fi
+
+      - name: Reject obvious secret material
+        run: |
+          matches=$(git ls-files | grep -Ei '(^|/)(id_rsa|.*\.pem|.*\.key|credentials\.json)$' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::possible secret material is tracked:"; echo "$matches"; exit 1
+          fi
+
+      - name: Large file guard
+        run: |
+          big=$(git ls-files -z | xargs -0 -I{} sh -c 'test -f "{}" && [ $(wc -c < "{}") -gt 2000000 ] && echo "{}"' || true)
+          if [ -n "$big" ]; then
+            echo "::error::files larger than 2 MB are tracked:"; echo "$big"; exit 1
+          fi
+
+  test:
+    name: lint + unit tests (mock backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: |
+          uv venv --python 3.12
+          uv sync --extra dev
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Unit tests
+        env:
+          BRAID_BACKEND: mock
+        run: uv run pytest -q
+
+  smoke:
+    name: live server smoke (mock backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BRAID_BACKEND: mock
+      BRAID_MAX_NEW_BYTES: "256"
+      BRAID_RATE_LIMIT_REQUESTS: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: |
+          uv venv --python 3.12
+          uv sync --extra dev
+
+      - name: Start the app
+        run: |
+          uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          echo $! > server.pid
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then break; fi
+            sleep 0.5
+          done
+
+      - name: GET /health
+        run: |
+          body=$(curl -sf http://127.0.0.1:8000/health)
+          echo "$body"
+          echo "$body" | grep -q '"model_loaded":true'
+
+      - name: GET /v1/model
+        run: |
+          body=$(curl -sf http://127.0.0.1:8000/v1/model)
+          echo "$body"
+          echo "$body" | grep -q '"research_preview":true'
+          echo "$body" | grep -q '"backend":"mock"'
+
+      - name: POST /v1/completions
+        run: |
+          body=$(curl -sf http://127.0.0.1:8000/v1/completions \
+            -H 'content-type: application/json' \
+            -d '{"prompt":"A strange machine woke beneath the city.","max_new_bytes":128,"temperature":0.8,"top_k":50,"seed":1234}')
+          echo "$body"
+          echo "$body" | grep -q '"generated_bytes"'
+          echo "$body" | grep -q '"seed":1234'
+
+      - name: POST /v1/completions/stream
+        run: |
+          body=$(curl -sfN http://127.0.0.1:8000/v1/completions/stream \
+            -H 'content-type: application/json' \
+            -d '{"prompt":"Hello","max_new_bytes":96,"seed":7}')
+          echo "$body" | head -20
+          echo "$body" | grep -q '^event: start'
+          echo "$body" | grep -q '^event: chunk'
+          echo "$body" | grep -q '^event: done'
+
+      - name: GET /v1/benchmarks
+        run: curl -sf http://127.0.0.1:8000/v1/benchmarks | head -c 400
+
+      - name: Pages render
+        run: |
+          curl -sf http://127.0.0.1:8000/ | grep -q "Research preview"
+          curl -sf http://127.0.0.1:8000/benchmarks | grep -q "Measured results"
+          curl -sf http://127.0.0.1:8000/static/app.js > /dev/null
+
+      - name: Invalid request is rejected
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' \
+            -X POST http://127.0.0.1:8000/v1/completions \
+            -H 'content-type: application/json' -d '{"prompt":"hi","temperature":0}')
+          test "$status" = "422"
+
+      - name: Stop the app
+        if: always()
+        run: kill "$(cat server.pid)" || true
+
+  docker:
+    name: docker image builds (no weights)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build (mock, public — no private wheel required)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: braid-demo:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the image and check /health
+        run: |
+          docker run -d --name braid-demo-ci -p 8000:8000 \
+            -e BRAID_BACKEND=mock braid-demo:ci
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health | grep -q '"model_loaded":true'
+          curl -sf http://127.0.0.1:8000/v1/model | grep -q '"backend":"mock"'
+
+      - name: Image contains no checkpoint
+        run: |
+          found=$(docker run --rm --entrypoint sh braid-demo:ci -c \
+            "find / -xdev \\( -name '*.pt' -o -name '*.safetensors' -o -name '*.ckpt' \\) 2>/dev/null" || true)
+          if [ -n "$found" ]; then
+            echo "::error::the image contains weight files:"; echo "$found"; exit 1
+          fi
+
+      - name: Stop
+        if: always()
+        run: docker rm -f braid-demo-ci || true
