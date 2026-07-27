@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Model weights — NEVER commit. They live in object storage, not in git.
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+*.pth
+*.onnx
+models/
+checkpoints/
+model-cache/
+
+# The private runtime wheel is fetched at build time.
+wheels/*
+!wheels/.gitkeep
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
