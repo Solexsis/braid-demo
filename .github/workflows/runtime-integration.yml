@@ -33,6 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: runtime-integration
+    # The `secrets` context is not available in `if:` conditions, so the optional
+    # published-package step below tests an env var instead of the secret itself.
+    env:
+      PUBLISHED_MODEL_URL: ${{ secrets.BRAID_MODEL_URL }}
+      PUBLISHED_MODEL_SHA256: ${{ secrets.BRAID_MODEL_SHA256 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -94,29 +99,44 @@ jobs:
 
       - name: Real generation, streamed and not, must agree
         run: |
-          payload='{"prompt":"Hello","max_new_bytes":64,"seed":1234}'
-          whole=$(curl -sf http://127.0.0.1:8000/v1/completions \
-            -H 'content-type: application/json' -d "$payload" \
-            | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"])')
-          streamed=$(curl -sfN http://127.0.0.1:8000/v1/completions/stream \
-            -H 'content-type: application/json' -d "$payload" \
-            | python3 -c '
-import json, sys
-out = []
-for line in sys.stdin:
-    if line.startswith("data:"):
-        payload = json.loads(line[5:])
-        if "text" in payload:
-            out.append(payload["text"])
-print("".join(out))')
-          test "$whole" = "$streamed" || { echo "::error::stream != non-stream"; exit 1; }
+          cat > /tmp/check_stream.py <<'SCRIPT'
+          import json
+          import urllib.request
+
+          BASE = "http://127.0.0.1:8000"
+          PAYLOAD = {"prompt": "Hello", "max_new_bytes": 64, "seed": 1234}
+
+
+          def post(path):
+              request = urllib.request.Request(
+                  BASE + path,
+                  data=json.dumps(PAYLOAD).encode(),
+                  headers={"content-type": "application/json"},
+              )
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  return response.read().decode("utf-8", "replace")
+
+
+          whole = json.loads(post("/v1/completions"))["text"]
+          chunks = []
+          for line in post("/v1/completions/stream").splitlines():
+              if line.startswith("data:"):
+                  event = json.loads(line[5:])
+                  if "text" in event:
+                      chunks.append(event["text"])
+          streamed = "".join(chunks)
+          assert streamed == whole, "stream != non-stream"
+          assert whole, "empty completion"
+          print(f"ok: {len(whole.encode())} bytes, identical on both paths")
+          SCRIPT
+          python3 /tmp/check_stream.py
 
       - name: Optional — a published model package
-        if: ${{ secrets.BRAID_MODEL_URL != '' }}
+        if: env.PUBLISHED_MODEL_URL != ''
         env:
           BRAID_BACKEND: runtime
-          BRAID_MODEL_URL: ${{ secrets.BRAID_MODEL_URL }}
-          BRAID_MODEL_SHA256: ${{ secrets.BRAID_MODEL_SHA256 }}
+          BRAID_MODEL_URL: ${{ env.PUBLISHED_MODEL_URL }}
+          BRAID_MODEL_SHA256: ${{ env.PUBLISHED_MODEL_SHA256 }}
           BRAID_MODEL_CACHE: /tmp/braid-cache
           BRAID_DEVICE: cpu
         run: |
