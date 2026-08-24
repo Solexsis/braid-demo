@@ -62,12 +62,29 @@ wider coarse bottlenecks, power-of-two n-gram hashing, learned dynamic chunking
 
 ## Training data
 
-The intended pretraining corpus is FineWeb-Edu as **raw bytes** with `0x00`
-document separators. There is no tokenizer and no vocabulary file.
+All corpora are **raw bytes** with `0x00` document separators. There is no
+tokenizer and no vocabulary file.
 
-The exact byte count and dataset description for a given checkpoint are recorded
-in that package's `manifest.json` and surfaced by `GET /v1/model`. When the demo
-reports `"training_bytes": null`, no figure has been published — not zero.
+Published ablations and every measurement in the Evaluation section below were
+trained on FineWeb-Edu.
+
+Release checkpoints from 2026-08-24 onward are trained on `open-v1`, an
+openly licensed corpus drawn from a single pinned revision of
+[Common Pile v0.1](https://huggingface.co/datasets/common-pile/comma_v0.1_training_dataset):
+Creative Commons web text, Stack Exchange, Wikimedia, open-access scholarship,
+public-domain books, and permissively licensed code. The bar this meets is
+**openly licensed, opt-outs honoured, provenance published, nothing acquired by
+piracy** — not the stronger and unattainable claim that every author consented
+to language model training.
+
+Because absolute bits-per-byte is corpus-dependent, `open-v1` figures are **not**
+comparable to the FineWeb-Edu numbers below; the architecture comparisons are,
+since both arms of every A/B see identical bytes.
+
+The exact byte count, corpus name, and per-source licence table for a given
+checkpoint are recorded in that package's `manifest.json` and surfaced by
+`GET /v1/model`. When the demo reports `"training_bytes": null`, no figure has
+been published — not zero.
 
 ## Evaluation
 
