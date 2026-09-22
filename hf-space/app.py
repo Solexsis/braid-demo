@@ -27,7 +27,7 @@ import time
 import gradio as gr
 from huggingface_hub import snapshot_download
 
-MODEL_REPO = os.environ.get("BRAID_MODEL_REPO", "Solenopsisbot/braid-300m")
+MODEL_REPO = os.environ.get("BRAID_MODEL_REPO", "Solexsis/braid-300m")
 MAX_NEW_BYTES = int(os.environ.get("BRAID_MAX_NEW_BYTES", "1024"))
 
 # HF_TOKEN is only needed while the model repo is private.

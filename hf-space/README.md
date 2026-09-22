@@ -10,7 +10,7 @@ pinned: false
 license: apache-2.0
 short_description: Tokenizer-free byte-level hourglass LM (research preview)
 models:
-  - Solenopsisbot/braid-300m
+  - Solexsis/braid-300m
 datasets:
   - Solenopsisbot/braid-open-v1
 ---

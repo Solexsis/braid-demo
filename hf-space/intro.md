@@ -8,5 +8,5 @@ architecture trades quality for systems cost, and the model is a base
 text-continuation model, not a chatbot. Write the start of something (a
 sentence, a paragraph, a code block) and it will continue it.
 Weights and the openly licensed training corpus are at
-[Solenopsisbot/braid-300m](https://huggingface.co/Solenopsisbot/braid-300m) and
+[Solexsis/braid-300m](https://huggingface.co/Solexsis/braid-300m) and
 [Solenopsisbot/braid-open-v1](https://huggingface.co/datasets/Solenopsisbot/braid-open-v1).
