@@ -1,18 +1,16 @@
-"""Braid on HF ZeroGPU: a text-continuation demo over the public 300m package.
+"""Braid on HF ZeroGPU: a text-continuation demo over the public 300m model.
 
 The Space holds no model code. At startup it downloads the model repo, which
-carries both the verified weight package (repo root) and the matching runtime
-wheel (`runtime/`), installs that wheel, and serves through
-`idklm.runtime.BraidRuntime` like every other Braid host. Pinning the runtime
-to the model repo's revision means the weights and the code that reads them
-can never drift apart.
+carries the weights (`config.json` + `model.safetensors`) and the matching
+`braid-lite` wheel (`runtime/`), installs that wheel and serves through it.
+Pinning the inference code to the model repo's revision means the weights and
+the code that reads them can never drift apart.
 
 ZeroGPU specifics (https://huggingface.co/docs/hub/spaces-zerogpu):
 * `spaces` must be imported before anything initialises CUDA.
 * The model goes onto `cuda` at module level (ZeroGPU emulates CUDA outside
   `@spaces.GPU`; real GPU work only happens inside the decorated function).
-* `torch.compile` is unsupported, hence `kernels="portable"`: no FlexAttention
-  and no Triton ConvGLU, same weights and same math.
+* `torch.compile` is unsupported; braid-lite never compiles anything.
 """
 
 from __future__ import annotations
@@ -31,24 +29,21 @@ from huggingface_hub import snapshot_download
 
 MODEL_REPO = os.environ.get("BRAID_MODEL_REPO", "Solenopsisbot/braid-300m")
 MAX_NEW_BYTES = int(os.environ.get("BRAID_MAX_NEW_BYTES", "1024"))
-# CUDA-graph decode is the fast single-stream path on CUDA; the switch exists
-# in case graph capture ever misbehaves inside a ZeroGPU worker.
-CUDA_GRAPHS = os.environ.get("BRAID_CUDA_GRAPHS", "1") != "0"
 
 # HF_TOKEN is only needed while the model repo is private.
 PACKAGE_DIR = snapshot_download(MODEL_REPO, token=os.environ.get("HF_TOKEN") or None)
 
 
 def _install_runtime() -> None:
-    """Install the runtime wheel shipped inside the model repo, once."""
+    """Install the braid-lite wheel shipped inside the model repo, once."""
     try:
-        importlib.import_module("idklm.runtime")
+        importlib.import_module("braid_lite")
         return
     except ImportError:
         pass
-    wheels = sorted(glob.glob(os.path.join(PACKAGE_DIR, "runtime", "braid_runtime-*.whl")))
+    wheels = sorted(glob.glob(os.path.join(PACKAGE_DIR, "runtime", "braid_lite-*.whl")))
     if not wheels:
-        raise RuntimeError(f"{MODEL_REPO} has no runtime/braid_runtime-*.whl")
+        raise RuntimeError(f"{MODEL_REPO} has no runtime/braid_lite-*.whl")
     # --no-deps: torch and numpy come from requirements.txt, pinned to what
     # ZeroGPU supports; the wheel must not pull a different torch.
     subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", wheels[-1]])
@@ -56,14 +51,9 @@ def _install_runtime() -> None:
 
 
 _install_runtime()
-from idklm.runtime import BraidRuntime  # noqa: E402
+import braid_lite  # noqa: E402
 
-RUNTIME = BraidRuntime.load(
-    PACKAGE_DIR, device="cuda", kernels="portable", max_new_bytes_limit=MAX_NEW_BYTES,
-)
-if not CUDA_GRAPHS:
-    RUNTIME._cuda_graph_decode = False  # no public toggle; the Space's escape hatch
-INFO = RUNTIME.model_info()
+MODEL = braid_lite.load(PACKAGE_DIR, device="cuda")
 
 
 def _gpu_seconds(prompt, max_new_bytes, temperature, top_k, seed):
@@ -82,7 +72,7 @@ def generate(prompt, max_new_bytes, temperature, top_k, seed):
     seed = None if seed is None or int(seed) < 0 else int(seed)
     started = time.perf_counter()
     text = ""
-    for chunk in RUNTIME.generate_stream(
+    for chunk in MODEL.generate_stream(
         prompt, max_new_bytes=int(max_new_bytes), temperature=float(temperature),
         top_k=int(top_k), seed=seed,
     ):
@@ -127,8 +117,8 @@ with gr.Blocks(title="Braid — tokenizer-free byte-level LM") as demo:
     gr.Examples(EXAMPLES, inputs=[prompt])
     gr.Markdown(_read("about.md"))
     gr.Markdown(
-        f"Model `{INFO.get('model_name')}` · {INFO.get('parameters', 0):,} parameters · "
-        f"runtime {INFO.get('runtime_version')}"
+        f"Model `{MODEL.manifest.get('model_name')}` · {MODEL.parameters:,} parameters "
+        f"at inference · braid-lite {braid_lite.__version__}"
     )
 
     job = run.click(generate, [prompt, max_new, temperature, top_k, seed], [output, stats])
