@@ -1,0 +1,4 @@
+# torch is pinned to a ZeroGPU-supported build; the Braid runtime wheel is
+# installed at startup from the model repo (see app.py) with --no-deps.
+torch==2.12.1
+numpy>=1.26
