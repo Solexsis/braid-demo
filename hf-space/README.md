@@ -20,4 +20,4 @@ datasets:
 Source for the `Solenopsisbot/braid` Space. It contains no model code: the
 weights package and the matching runtime wheel both come from the model repo
 at startup. The source of truth is `hf-space/` in
-https://github.com/SolexsisAI/braid-demo.
+https://github.com/Solexsis/braid-demo.

@@ -84,7 +84,7 @@ class Settings:
     runtime_version: str = ""
     model_name_override: str = ""
     site_url: str = "https://solexsis.ai"
-    repo_url: str = "https://github.com/SolexsisAI/braid-demo"
+    repo_url: str = "https://github.com/Solexsis/braid-demo"
     log_level: str = "INFO"
     trust_forwarded_for: bool = False
 
@@ -116,7 +116,7 @@ def load_settings() -> Settings:
         runtime_version=_str("BRAID_RUNTIME_VERSION"),
         model_name_override=_str("BRAID_MODEL_NAME"),
         site_url=_str("BRAID_SITE_URL", "https://solexsis.ai"),
-        repo_url=_str("BRAID_REPO_URL", "https://github.com/SolexsisAI/braid-demo"),
+        repo_url=_str("BRAID_REPO_URL", "https://github.com/Solexsis/braid-demo"),
         log_level=_str("BRAID_LOG_LEVEL", "INFO").upper(),
         trust_forwarded_for=_bool("BRAID_TRUST_FORWARDED_FOR", False),
     )
