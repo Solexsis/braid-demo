@@ -401,4 +401,4 @@ in each package's `manifest.json` and `MODEL_CARD.md`.
 * [`MODEL_CARD.md`](MODEL_CARD.md) — what the model is, and is not, for.
 * [`CONTRIBUTING.md`](CONTRIBUTING.md) — what belongs here and what does not.
 * [`SECURITY.md`](SECURITY.md) — reporting a vulnerability.
-* Solexsis Research — <https://solexsis.ai>
+* Solexsis Research — <https://solexsis.com>

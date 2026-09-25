@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email **security@solexsis.ai** with:
+Email **security@solexsis.com** with:
 
 * what you found and where (endpoint, file, or configuration),
 * how to reproduce it,
